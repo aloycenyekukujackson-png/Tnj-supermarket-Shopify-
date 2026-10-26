@@ -350,4 +350,53 @@ if(ios&&!dismissed()){setTimeout(function(){h.style.display="block"},2500)}
 document.getElementById("iosx").addEventListener("click",function(){h.style.display="none";dismiss()});
 })();
 </script>
+
+<script>
+/* ===== USAWAZISHAJI WA BIDHAA MTANDAONI (Supabase) =====
+   Jaza mistari hii mitatu baada ya kutengeneza Supabase: */
+(function(){
+var CFG={
+  url:"",    /* mfano: https://abcdxyz.supabase.co */
+  key:"",    /* anon public key */
+  email:""   /* email ya admin uliyoitengeneza Supabase Authentication */
+};
+if(!CFG.url||!CFG.key||typeof sv!=="function")return;
+var F=["p","cats","pay","fee","zones","cp","w"],base=CFG.url.replace(/\/$/,""),_sv=sv,tm=null;
+function arr(x){if(Array.isArray(x))return x.filter(function(v){return v!=null});if(x&&typeof x==="object")return Object.keys(x).map(function(k){return x[k]});return[]}
+function pull(){
+  if(okAdmin||!S)return;
+  fetch(base+"/rest/v1/catalog?id=eq.1&select=data&t="+Date.now(),{headers:{apikey:CFG.key,Authorization:"Bearer "+CFG.key}})
+  .then(function(r){return r.json()}).then(function(rows){
+    var d=rows&&rows[0]&&rows[0].data;
+    if(!d||typeof d!=="object"||okAdmin||!Array.isArray(d.p))return;
+    F.forEach(function(k){S[k]=k==="fee"?(+d.fee||0):arr(d[k])});
+    _sv();route();
+  }).catch(function(){});
+}
+function login(){
+  var pw=null;try{pw=localStorage.getItem("tnjfp")}catch(e){}
+  if(!pw){pw=prompt("Password ya usawazishaji (Supabase) ya "+CFG.email);if(!pw)return Promise.reject()}
+  return fetch(base+"/auth/v1/token?grant_type=password",{method:"POST",headers:{apikey:CFG.key,"Content-Type":"application/json"},body:JSON.stringify({email:CFG.email,password:pw})})
+  .then(function(r){return r.json()}).then(function(j){
+    if(!j.access_token){try{localStorage.removeItem("tnjfp")}catch(e){}throw 0}
+    try{localStorage.setItem("tnjfp",pw)}catch(e){}
+    return j.access_token});
+}
+function push(){
+  if(!okAdmin)return;
+  var data={};F.forEach(function(k){data[k]=S[k]});
+  return login().then(function(t){return fetch(base+"/rest/v1/catalog",{method:"POST",headers:{apikey:CFG.key,Authorization:"Bearer "+t,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({id:1,data:data})})})
+  .then(function(r){if(!r.ok)throw 0;toast("Imesawazishwa \u2713 (wateja wataona)")})
+  .catch(function(){toast("Usawazishaji umeshindwa. Angalia password/mtandao")});
+}
+window.sv=function(){_sv();if(okAdmin){clearTimeout(tm);tm=setTimeout(push,1500)}};
+var b=document.createElement("button");b.textContent="\u2B06 Sawazisha sasa";
+b.style.cssText="position:fixed;left:12px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:60;display:none;background:#062a54;color:#fff;border:0;border-radius:999px;padding:12px 16px;font:600 14px system-ui,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.3)";
+b.onclick=push;document.body.appendChild(b);
+setInterval(function(){b.style.display=(okAdmin&&location.hash==="#admin")?"block":"none"},800);
+document.addEventListener("visibilitychange",function(){if(!document.hidden)pull()});
+setInterval(pull,90000);
+pull();
+})();
+</script>
 </body></html>
